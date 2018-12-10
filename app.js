@@ -4,9 +4,13 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const mongoose = require('mongoose');
+const session    = require("express-session");
+const MongoStore = require("connect-mongo")(session);
 // Mongoose configuration
-mongoose.connect("mongodb://localhost/basic-auth");
-const authRoutes = require('./routes/auth-routes.js');
+mongoose.connect("mongodb://localhost/basic-auth",{ useNewUrlParser: true });
+
+const authRoutes = require('./routes/auth-routes');
+const siteRoutes = require('./routes/site-routes');
 // var indexRouter = require('./routes/index');
 // var usersRouter = require('./routes/users');
 
@@ -22,9 +26,26 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+//habilitar sesiones en express
+app.use(session({
+  secret: "basic-auth-secret",
+  cookie: { maxAge: 60000 },
+  store: new MongoStore({
+    mongooseConnection: mongoose.connection,
+    ttl: 24 * 60 * 60 // 1 day
+  }),
+  resave: true,
+  saveUninitialized: true
+}));
+
+
+
 app.use('/', authRoutes);
+app.use('/', siteRoutes);
 // app.use('/', indexRouter);
 // app.use('/users', usersRouter);
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
